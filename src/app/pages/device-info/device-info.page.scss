@@ -1,0 +1,135 @@
+.device-info-content {
+  padding-bottom: 90px;
+}
+
+.app-icon-preview {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.info-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  direction: rtl;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.row-label {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.row-val {
+  color: #ffffff;
+  font-family: monospace;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.text-accent {
+  color: #38bdf8 !important;
+}
+
+.plugins-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  direction: rtl;
+}
+
+.plugin-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.plugin-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plugin-name {
+  color: #f1f5f9;
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.plugin-status {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.status-badge-ok {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #4ade80;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+.cmd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  direction: rtl;
+}
+
+.quick-cmd {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .cmd-desc {
+    color: #cbd5e1;
+    font-size: 0.82rem;
+  }
+
+  code {
+    direction: ltr;
+    text-align: left;
+    background: #090d16;
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #f59e0b;
+    font-family: monospace;
+    font-size: 0.82rem;
+    overflow-x: auto;
+  }
+}
+

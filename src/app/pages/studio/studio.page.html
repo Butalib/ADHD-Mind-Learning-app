@@ -1,0 +1,305 @@
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar style="--background: rgba(10, 14, 23, 0.7); backdrop-filter: blur(10px);">
+    <ion-title>
+      <span class="gradient-title">استوديو الصوت والحركة (Studio)</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <span class="badge-tag" style="margin-inline-end: 12px;">
+        <span class="status-dot"></span>
+        {{ platformName }}
+      </span>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding studio-content">
+  <!-- 1. Background Audio Player & Study Music Card -->
+  <ion-card class="glass-card audio-player-card">
+    <ion-card-header>
+      <div class="audio-header-row">
+        <div class="audio-title-box">
+          <ion-icon name="musical-notes-outline" class="audio-main-icon"></ion-icon>
+          <div>
+            <ion-card-title style="color: #ffffff; font-size: 1.15rem;">صوتيات التركيز والمذاكرة</ion-card-title>
+            <ion-card-subtitle style="color: #94a3b8;">تشغيل في الخلفية مستمر لا نهائي مع إدارة الـ Queue</ion-card-subtitle>
+          </div>
+        </div>
+
+        <!-- Loop Mode Badge Button -->
+        <button class="loop-badge-btn" (click)="toggleLoop()" [attr.title]="'وضع التكرار: ' + (loopMode$ | async)">
+          <ion-icon name="repeat-outline"></ion-icon>
+          <span *ngIf="(loopMode$ | async) === 'all'">تكرار الكل 🔁</span>
+          <span *ngIf="(loopMode$ | async) === 'one'">تكرار المقطع 🔂</span>
+          <span *ngIf="(loopMode$ | async) === 'none'">بدون تكرار ➡️</span>
+        </button>
+      </div>
+    </ion-card-header>
+
+    <ion-card-content>
+      <!-- Now Playing Box -->
+      <div class="now-playing-box" *ngIf="audioService.currentTrack as track">
+        <div class="track-info">
+          <div class="track-title-row">
+            <span class="now-label">شغال الآن:</span>
+            <span class="track-name">{{ track.title }}</span>
+          </div>
+          <span class="track-artist">{{ track.artist || 'Focus Track' }}</span>
+        </div>
+
+        <!-- Animated Wave bars when playing -->
+        <div class="wave-visualizer" [class.playing]="isPlaying$ | async">
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+        </div>
+      </div>
+
+      <!-- Seek Progress Slider -->
+      <div class="seek-bar-wrapper">
+        <div class="time-row">
+          <span>{{ formatTime(currentTime$ | async) }}</span>
+          <span>{{ formatTime(duration$ | async) }}</span>
+        </div>
+        <ion-range
+          [min]="0"
+          [max]="(duration$ | async) || 100"
+          [value]="(currentTime$ | async) || 0"
+          (ionChange)="onSeek($event)"
+          style="--bar-background: rgba(255,255,255,0.12); --bar-background-active: #6366f1; --knob-background: #818cf8; padding: 0;"
+        >
+        </ion-range>
+      </div>
+
+      <!-- Main Controls Row (Prev, Play/Pause, Next) -->
+      <div class="playback-controls-row">
+        <button class="ctrl-btn" (click)="prevTrack()" title="المقطع السابق">
+          <ion-icon name="play-skip-back-outline"></ion-icon>
+        </button>
+
+        <button class="ctrl-btn-play" (click)="toggleAudio()" title="تشغيل / إيقاف">
+          <ion-icon [name]="(isPlaying$ | async) ? 'pause' : 'play'"></ion-icon>
+        </button>
+
+        <button class="ctrl-btn" (click)="nextTrack()" title="المقطع التالي">
+          <ion-icon name="play-skip-forward-outline"></ion-icon>
+        </button>
+      </div>
+
+      <!-- Volume Slider -->
+      <div class="volume-slider-row">
+        <ion-icon name="volume-low-outline" style="color: #94a3b8; font-size: 1.1rem;"></ion-icon>
+        <ion-range
+          [min]="0"
+          [max]="1"
+          [step]="0.05"
+          [value]="(volume$ | async) || 0.7"
+          (ionChange)="onVolumeChange($event)"
+          style="--bar-background: rgba(255,255,255,0.1); --bar-background-active: #38bdf8; --knob-background: #38bdf8; flex: 1; padding: 0;"
+        >
+        </ion-range>
+        <ion-icon name="volume-high-outline" style="color: #38bdf8; font-size: 1.1rem;"></ion-icon>
+      </div>
+
+      <!-- Queue Header & Add Files Button -->
+      <div class="queue-header-row">
+        <span class="queue-title">قائمة الانتظار والترتيب (Queue):</span>
+        
+        <!-- Add Custom Songs from Device -->
+        <label class="add-files-btn">
+          <ion-icon name="add-circle-outline"></ion-icon>
+          <span>إضافة مقاطع من جهازك</span>
+          <input
+            type="file"
+            accept="audio/*"
+            multiple
+            (change)="onFilesSelected($event)"
+            style="display: none;"
+          />
+        </label>
+      </div>
+
+      <!-- Playlist / Queue List -->
+      <div class="playlist-container" *ngIf="playlist$ | async as tracks">
+        <div
+          *ngFor="let item of tracks; let i = index"
+          class="queue-item"
+          [class.active]="i === (currentTrackIndex$ | async)"
+          (click)="playTrackAt(i)"
+        >
+          <div class="item-left">
+            <span class="track-index">{{ i + 1 }}</span>
+            <div class="item-meta">
+              <span class="item-title">{{ item.title }}</span>
+              <span class="item-tag" *ngIf="!item.isCustom">افتراضي (Assets)</span>
+              <span class="item-tag custom" *ngIf="item.isCustom">من جهازك</span>
+            </div>
+          </div>
+
+          <div class="item-actions">
+            <!-- Reorder Up -->
+            <button
+              class="reorder-btn"
+              (click)="moveTrackUp($event, i)"
+              [disabled]="i === 0"
+              title="تقديم في الترتيب"
+            >
+              <ion-icon name="arrow-up-outline"></ion-icon>
+            </button>
+
+            <!-- Reorder Down -->
+            <button
+              class="reorder-btn"
+              (click)="moveTrackDown($event, i, tracks.length)"
+              [disabled]="i === tracks.length - 1"
+              title="تأخير في الترتيب"
+            >
+              <ion-icon name="arrow-down-outline"></ion-icon>
+            </button>
+
+            <!-- Delete (only for custom or if more than 1) -->
+            <button
+              class="delete-btn"
+              *ngIf="tracks.length > 1"
+              (click)="removeTrack($event, i)"
+              title="حذف من القائمة"
+            >
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- 2. Canvas Visuals & Physics Settings Card -->
+  <ion-card class="glass-card">
+    <ion-card-header>
+      <ion-card-title style="color: #f8fafc; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+        <ion-icon name="color-palette-outline" style="color: #6366f1;"></ion-icon>
+        إعدادات ألوان وحركة الكانفاس
+      </ion-card-title>
+      <ion-card-subtitle style="color: #94a3b8;">
+        خصص الألوان والانسيابية والشفافية لمواءمة المذاكرة
+      </ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content>
+      <!-- Color Mode Selector -->
+      <div class="section-label">نمط الألوان (Color Modes):</div>
+      <div class="color-grid">
+        <button
+          *ngFor="let m of colorModes"
+          class="color-chip"
+          [class.active]="config.colorMode === m.value"
+          (click)="setColorMode(m.value)"
+        >
+          <span class="color-preview" [style.background]="m.color"></span>
+          {{ m.label }}
+        </button>
+      </div>
+
+      <!-- Trails Slider -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>عدد الخطوط المتبوعة (Trails):</span>
+          <span class="slider-value">{{ config.trails }} خط</span>
+        </div>
+        <ion-range
+          [min]="6"
+          [max]="40"
+          [step]="2"
+          [value]="config.trails"
+          (ionChange)="onTrailsChange($event)"
+          style="--bar-background: rgba(255,255,255,0.1); --bar-background-active: #6366f1; --knob-background: #818cf8;"
+        >
+        </ion-range>
+      </div>
+
+      <!-- Friction Slider -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>معامل الاحتكاك (Friction):</span>
+          <span class="slider-value">{{ config.friction | number:'1.2-2' }}</span>
+        </div>
+        <ion-range
+          [min]="0.2"
+          [max]="0.8"
+          [step]="0.05"
+          [value]="config.friction"
+          (ionChange)="onFrictionChange($event)"
+          style="--bar-background: rgba(255,255,255,0.1); --bar-background-active: #38bdf8; --knob-background: #38bdf8;"
+        >
+        </ion-range>
+      </div>
+
+      <!-- Tension Slider -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>معامل الشد (Tension):</span>
+          <span class="slider-value">{{ config.tension | number:'1.2-2' }}</span>
+        </div>
+        <ion-range
+          [min]="0.8"
+          [max]="0.99"
+          [step]="0.01"
+          [value]="config.tension"
+          (ionChange)="onTensionChange($event)"
+          style="--bar-background: rgba(255,255,255,0.1); --bar-background-active: #a855f7; --knob-background: #c084fc;"
+        >
+        </ion-range>
+      </div>
+
+      <!-- Opacity Slider -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>شفافية الألوان والخطوط (Opacity):</span>
+          <span class="slider-value">{{ ((config.opacity || 0.22) * 100) | number:'1.0-0' }}%</span>
+        </div>
+        <ion-range
+          [min]="0.05"
+          [max]="0.85"
+          [step]="0.05"
+          [value]="config.opacity || 0.22"
+          (ionChange)="onOpacityChange($event)"
+          style="--bar-background: rgba(255,255,255,0.1); --bar-background-active: #22c55e; --knob-background: #4ade80;"
+        >
+        </ion-range>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-row">
+        <ion-button
+          expand="block"
+          fill="solid"
+          color="primary"
+          (click)="triggerSplash()"
+          style="flex: 1; --border-radius: 12px; font-weight: 600;"
+        >
+          <ion-icon slot="start" name="phone-portrait-outline"></ion-icon>
+          معاينة الـ Splash Screen
+        </ion-button>
+
+        <ion-button
+          fill="outline"
+          color="light"
+          (click)="resetSettings()"
+          style="--border-radius: 12px;"
+        >
+          <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Splash Simulator Overlay (For Web preview) -->
+  <div *ngIf="showSimulatorSplash" class="splash-simulator-overlay">
+    <div class="splash-logo-box">
+      <div class="splash-pulse"></div>
+      <img src="assets/icon/favicon.png" alt="Logo" class="splash-logo-img" />
+    </div>
+    <h2 class="splash-title">SMind Cursor</h2>
+    <p class="splash-sub">Powered by Ionic + Angular + Capacitor</p>
+    <div class="splash-loader"></div>
+  </div>
+</ion-content>

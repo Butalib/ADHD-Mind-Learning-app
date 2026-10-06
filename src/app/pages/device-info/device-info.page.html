@@ -1,0 +1,106 @@
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar style="--background: rgba(10, 14, 23, 0.7); backdrop-filter: blur(10px);">
+    <ion-title>
+      <span class="gradient-title">بيئة التشغيل والـ APK</span>
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding device-info-content">
+  <!-- App Meta Card -->
+  <ion-card class="glass-card">
+    <ion-card-header>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div class="app-icon-preview">
+          <img src="assets/icon/favicon.png" alt="Icon" />
+        </div>
+        <div>
+          <ion-card-title style="color: #ffffff; font-size: 1.25rem;">{{ appInfo.name }}</ion-card-title>
+          <ion-card-subtitle style="color: #38bdf8;">{{ appInfo.appId }}</ion-card-subtitle>
+        </div>
+      </div>
+    </ion-card-header>
+
+    <ion-card-content>
+      <div class="info-table">
+        <div class="info-row">
+          <span class="row-label">الإصدار (Version):</span>
+          <span class="row-val">{{ appInfo.version }}</span>
+        </div>
+        <div class="info-row">
+          <span class="row-label">Angular Core:</span>
+          <span class="row-val">{{ appInfo.angularVersion }}</span>
+        </div>
+        <div class="info-row">
+          <span class="row-label">Ionic Framework:</span>
+          <span class="row-val">{{ appInfo.ionicVersion }}</span>
+        </div>
+        <div class="info-row">
+          <span class="row-label">المنصة النشطة (Current Platform):</span>
+          <span class="row-val text-accent">{{ platformInfo.name }}</span>
+        </div>
+        <div class="info-row">
+          <span class="row-label">أبعاد الشاشة الحالية:</span>
+          <span class="row-val">{{ platformInfo.screenResolution }}</span>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Plugins & Capabilities Card -->
+  <ion-card class="glass-card">
+    <ion-card-header>
+      <ion-card-title style="color: #ffffff; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+        <ion-icon name="hardware-chip-outline" style="color: #4ade80;"></ion-icon>
+        حالة مكونات الموبايل (Native Capabilities)
+      </ion-card-title>
+    </ion-card-header>
+
+    <ion-card-content>
+      <div class="plugins-list">
+        <div *ngFor="let p of pluginsStatus" class="plugin-item">
+          <div class="plugin-details">
+            <span class="plugin-name">{{ p.name }}</span>
+            <span class="plugin-status">{{ p.status }}</span>
+          </div>
+          <span class="status-badge-ok">
+            <ion-icon name="checkmark-circle"></ion-icon>
+            جاهز
+          </span>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Quick Command Cheatsheet Card -->
+  <ion-card class="glass-card">
+    <ion-card-header>
+      <ion-card-title style="color: #ffffff; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+        <ion-icon name="terminal-outline" style="color: #f59e0b;"></ion-icon>
+        أوامر سريعة للطرفية (Quick Terminal)
+      </ion-card-title>
+    </ion-card-header>
+
+    <ion-card-content>
+      <div class="cmd-list">
+        <div class="quick-cmd">
+          <span class="cmd-desc">1. فتح مشروع الأندرويد في أندرويد ستوديو:</span>
+          <code>npx cap open android</code>
+        </div>
+        <div class="quick-cmd">
+          <span class="cmd-desc">2. توليد وتحديث الأصول والـ Splash Screen:</span>
+          <code>npx @capacitor/assets generate --android</code>
+        </div>
+        <div class="quick-cmd">
+          <span class="cmd-desc">3. فحص توصيل الموبايل عبر كابل USB:</span>
+          <code>adb devices</code>
+        </div>
+        <div class="quick-cmd">
+          <span class="cmd-desc">4. تثبيت الـ APK على الموبايل مباشرة عبر ADB:</span>
+          <code>adb install android/app/build/outputs/apk/debug/app-debug.apk</code>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>
+

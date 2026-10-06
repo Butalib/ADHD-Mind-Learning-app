@@ -1,0 +1,394 @@
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar style="--background: rgba(10, 14, 23, 0.85); backdrop-filter: blur(14px);">
+    <!-- Back Button when inside details (Unifies navigation in outer header) -->
+    <ion-buttons slot="start" *ngIf="selectedTopic">
+      <ion-button (click)="goBack()" class="header-back-btn" aria-label="الرجوع للقائمة">
+        <ion-icon slot="start" name="arrow-forward-outline"></ion-icon>
+        <span class="back-text">القائمة</span>
+      </ion-button>
+    </ion-buttons>
+
+    <ion-title>
+      <span class="gradient-title" *ngIf="!selectedTopic">موضوعات المذاكرة والتعلم</span>
+      <span class="header-topic-title" *ngIf="selectedTopic">{{ selectedTopic.title }}</span>
+    </ion-title>
+
+    <!-- Master List Mode: Add Topic Button -->
+    <ion-buttons slot="end" *ngIf="!selectedTopic">
+      <ion-button (click)="openCreateModal()" color="primary" class="add-topic-btn">
+        <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+        <span class="btn-text">إضافة موضوع</span>
+      </ion-button>
+    </ion-buttons>
+
+    <!-- Details Mode: Edit & Delete Actions (Clean standard toolbar slot="end") -->
+    <ion-buttons slot="end" *ngIf="selectedTopic as topic">
+      <ion-button (click)="openEditModal($event, topic)" class="header-action-btn edit" title="تعديل الموضوع">
+        <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="deleteTopic($event, topic)" class="header-action-btn delete" title="حذف الموضوع">
+        <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding learning-content">
+
+  <!-- Pull-To-Refresh -->
+  <ion-refresher
+    slot="fixed"
+    [disabled]="selectedTopic !== null"
+    (ionRefresh)="handleRefresh($event)"
+    class="study-refresher"
+  >
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="اسحب لتحديث موضوعات المذاكرة..."
+      refreshingSpinner="crescent"
+      refreshingText="جاري تحديث الموضوعات والتخزين المحلي...">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <!-- ========================================== -->
+  <!-- 1. VIEW: DETAILS VIEW (عرض تفاصيل الآيتم الواحدة) -->
+  <!-- ========================================== -->
+  <div *ngIf="selectedTopic as topic" class="topic-detail-view glass-card">
+    
+    <!-- Meta Header: Status Toggle + Category + Reading Time -->
+    <div class="detail-header-card">
+      <div class="detail-status-row">
+        <!-- Interactive Status Toggle Pill -->
+        <button
+          type="button"
+          class="status-toggle-pill"
+          [class.done]="topic.completed"
+          (click)="toggleCompletion($event, topic)"
+        >
+          <ion-icon [name]="topic.completed ? 'checkmark-circle' : 'hourglass-outline'"></ion-icon>
+          <span>{{ topic.completed ? 'تمت المذاكرة والإنجاز بنجاح' : 'قيد المذاكرة والتركيز' }}</span>
+        </button>
+
+        <!-- Category & Reading Time Pills -->
+        <div class="meta-badges">
+          <span class="category-pill" [style.border-color]="topic.accentColor" [style.color]="topic.accentColor">
+            {{ topic.category }}
+          </span>
+          <span class="time-pill">
+            <ion-icon name="time-outline"></ion-icon>
+            {{ topic.readingTime }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Topic Title -->
+      <h1 class="detail-title" [class.done-text]="topic.completed">
+        {{ topic.title }}
+      </h1>
+
+      <!-- Summary Callout Box -->
+      <div class="detail-summary-card" *ngIf="topic.summary">
+        <div class="summary-header">
+          <ion-icon name="bulb-outline"></ion-icon>
+          <span>الملخص وأهم الأفكار</span>
+        </div>
+        <p class="summary-text">{{ topic.summary }}</p>
+      </div>
+    </div>
+
+    <div class="detail-divider"></div>
+
+    <!-- Content Body (Formatted for Study & Focus) -->
+    <div class="detail-content-body">
+      <div class="content-text-block">
+        <ng-container *ngFor="let paragraph of topic.content.split('\n\n')">
+          <div
+            class="study-paragraph-card"
+            [class.header-paragraph]="paragraph.startsWith('📌')"
+          >
+            <p>{{ paragraph }}</p>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Quick Study Navigation Footer (التنقل السريع بين الدروس) -->
+    <div class="study-nav-footer">
+      <button
+        type="button"
+        class="study-nav-btn prev"
+        [disabled]="!hasPreviousTopic"
+        (click)="goToPreviousTopic()"
+      >
+        <ion-icon name="arrow-forward-outline"></ion-icon>
+        <span class="nav-btn-text">السابق</span>
+      </button>
+
+      <button
+        type="button"
+        class="study-complete-btn"
+        [class.done]="topic.completed"
+        (click)="toggleCompletion($event, topic)"
+      >
+        <ion-icon [name]="topic.completed ? 'checkmark-circle' : 'checkmark-circle-outline'"></ion-icon>
+        <span>{{ topic.completed ? 'تم الإنجاز ✓' : 'إتمام المذاكرة' }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="study-nav-btn next"
+        [disabled]="!hasNextTopic"
+        (click)="goToNextTopic()"
+      >
+        <span class="nav-btn-text">التالي</span>
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. VIEW: MASTER LIST VIEW (لستة المواضيع الرئيسية) -->
+  <!-- ========================================== -->
+  <div *ngIf="!selectedTopic" class="topics-master-view">
+    
+    <!-- Filter Pills (فلترة الحالات: الكل - قيد المذاكرة - تم الإنجاز بأيقونات رسمية) -->
+    <div class="filters-bar-wrapper">
+      <div class="filter-pills-row">
+        <button
+          class="filter-pill"
+          [class.active]="activeFilter === 'all'"
+          (click)="setFilter('all')"
+        >
+          <ion-icon name="layers-outline"></ion-icon>
+          <span>الكل</span>
+          <span class="filter-count">{{ allCount$ | async }}</span>
+        </button>
+
+        <button
+          class="filter-pill"
+          [class.active]="activeFilter === 'pending'"
+          (click)="setFilter('pending')"
+        >
+          <ion-icon name="hourglass-outline"></ion-icon>
+          <span>قيد المذاكرة</span>
+          <span class="filter-count warning">{{ pendingCount$ | async }}</span>
+        </button>
+
+        <button
+          class="filter-pill"
+          [class.active]="activeFilter === 'completed'"
+          (click)="setFilter('completed')"
+        >
+          <ion-icon name="checkmark-done-outline"></ion-icon>
+          <span>تم الإنجاز</span>
+          <span class="filter-count success">{{ completedCount$ | async }}</span>
+        </button>
+      </div>
+
+      <!-- Search Input -->
+      <div class="search-box">
+        <ion-searchbar
+          placeholder="ابحث في الدروس والموضوعات..."
+          (ionInput)="onSearchChange($event)"
+          [debounce]="150"
+          style="--background: rgba(15, 23, 42, 0.6); --color: #ffffff; --placeholder-color: #64748b; padding: 0;"
+        >
+        </ion-searchbar>
+      </div>
+    </div>
+
+    <!-- Topics Cards List -->
+    <div class="topics-cards-container" *ngIf="filteredTopics$ | async as topics">
+      <!-- Empty State -->
+      <div class="empty-topics-state glass-card" *ngIf="topics.length === 0">
+        <ion-icon name="document-text-outline" class="empty-icon"></ion-icon>
+        <h3>لا توجد موضوعات مطابقة</h3>
+        <p>لم يتم العثور على أي موضوعات في هذا التصنيف. يمكنك إضافة موضوع جديد الآن.</p>
+        <button class="add-new-btn" (click)="openCreateModal()">
+          <ion-icon name="add-circle-outline"></ion-icon>
+          إضافة موضوع للمذاكرة
+        </button>
+      </div>
+
+      <!-- Topic Card Item -->
+      <div
+        *ngFor="let item of topics"
+        class="topic-card glass-card"
+        [class.completed-card]="item.completed"
+        (click)="openDetails(item)"
+      >
+        <!-- Top Row: Checkbox + Title + Edit/Delete Buttons -->
+        <div class="card-header-row">
+          <!-- Checkbox: هل اتعمل ولا لا -->
+          <div class="checkbox-wrapper" (click)="$event.stopPropagation()">
+            <label class="custom-checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="item.completed"
+                (change)="toggleCompletion($event, item)"
+              />
+              <span class="checkmark"></span>
+            </label>
+          </div>
+
+          <!-- Title -->
+          <div class="title-container">
+            <h2 class="card-title" [class.done-text]="item.completed">
+              {{ item.title }}
+            </h2>
+          </div>
+
+          <!-- Actions Beside Title: Delete & Edit -->
+          <div class="item-actions-row" (click)="$event.stopPropagation()">
+            <!-- Edit Button -->
+            <button
+              type="button"
+              class="action-icon-btn edit"
+              (click)="openEditModal($event, item)"
+              title="تعديل الموضوع"
+            >
+              <ion-icon name="create-outline"></ion-icon>
+            </button>
+
+            <!-- Delete Button -->
+            <button
+              type="button"
+              class="action-icon-btn delete"
+              (click)="deleteTopic($event, item)"
+              title="حذف الموضوع"
+            >
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Snippet -->
+        <p class="card-summary" *ngIf="item.summary">{{ item.summary }}</p>
+
+        <!-- Footer Meta (Category, Time, Read More Hint) -->
+        <div class="card-footer-row">
+          <div class="tags-left">
+            <span class="topic-category" [style.color]="item.accentColor" [style.border-color]="item.accentColor">
+              {{ item.category }}
+            </span>
+            <span class="topic-time">
+              <ion-icon name="time-outline"></ion-icon>
+              {{ item.readingTime }}
+            </span>
+          </div>
+
+          <div class="read-more-hint">
+            <span>التفاصيل</span>
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. MODAL: CREATE & EDIT TOPIC (إضافة وتعديل) -->
+  <!-- ========================================== -->
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="closeModal()">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar style="--background: #0f172a;">
+          <ion-title style="color: #ffffff;">
+            {{ modalMode === 'create' ? 'إضافة موضوع مذاكرة جديد' : 'تعديل الموضوع' }}
+          </ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeModal()" color="light">إلغاء</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding modal-form-content">
+        <div class="form-wrapper">
+          <!-- Title -->
+          <div class="form-field">
+            <label>عنوان الموضوع / الدرس: *</label>
+            <input
+              type="text"
+              class="custom-input"
+              [(ngModel)]="formTitle"
+              placeholder="مثال: خوارزميات البحث في الذكاء الاصطناعي"
+            />
+          </div>
+
+          <!-- Category & Reading Time in row -->
+          <div class="form-row">
+            <div class="form-field flex-1">
+              <label>التصنيف:</label>
+              <input
+                type="text"
+                class="custom-input"
+                [(ngModel)]="formCategory"
+                placeholder="مثال: هندسة، فيزياء، برمجة"
+              />
+            </div>
+            <div class="form-field flex-1">
+              <label>وقت القراءة:</label>
+              <input
+                type="text"
+                class="custom-input"
+                [(ngModel)]="formReadingTime"
+                placeholder="مثال: 5 دقائق"
+              />
+            </div>
+          </div>
+
+          <!-- Accent Color Picker -->
+          <div class="form-field">
+            <label>لون التمييز البصري:</label>
+            <div class="color-picker-row">
+              <button
+                *ngFor="let c of availableColors"
+                type="button"
+                class="color-pick-circle"
+                [style.background]="c"
+                [class.selected]="formColor === c"
+                (click)="formColor = c"
+              >
+              </button>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="form-field">
+            <label>ملخص قصير (يظهر في الكارد):</label>
+            <textarea
+              rows="2"
+              class="custom-textarea"
+              [(ngModel)]="formSummary"
+              placeholder="نبذة سريعة عن المحتوى وأهم أفكاره..."
+            ></textarea>
+          </div>
+
+          <!-- Content Body -->
+          <div class="form-field">
+            <label>المحتوى وتفاصيل المذاكرة الكاملة:</label>
+            <textarea
+              rows="7"
+              class="custom-textarea"
+              [(ngModel)]="formContent"
+              placeholder="اكتب تفاصيل الدرس، النقاط المهمة، الأوامر، أو الملاحظات..."
+            ></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <ion-button
+            expand="block"
+            color="primary"
+            (click)="saveTopic()"
+            style="--border-radius: 12px; font-weight: 700; margin-top: 16px;"
+          >
+            <ion-icon slot="start" [name]="modalMode === 'create' ? 'add-outline' : 'checkmark-outline'"></ion-icon>
+            {{ modalMode === 'create' ? 'حفظ وإضافة الموضوع' : 'حفظ التعديلات' }}
+          </ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+</ion-content>
